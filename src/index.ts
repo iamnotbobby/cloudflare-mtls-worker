@@ -25,11 +25,18 @@ export async function handle(
 
   const status = presented ? 403 : 421;
   const body = presented ? "Client certificate rejected" : "Client certificate required";
+  const level = presented ? "warn" : "info";
+  const reason = !presented
+    ? "no client certificate"
+    : revoked
+      ? "certificate revoked"
+      : `certificate not verified (${auth.certVerified ?? "unknown"})`;
   const url = new URL(request.url);
 
-  console.log(
+  console[level](
     JSON.stringify({
-      message: `${status} ${body}: ${request.method} ${url.hostname}${url.pathname}`,
+      level,
+      message: `${status} ${reason} - ${request.method} ${url.hostname}${url.pathname}`,
       action: "reject",
       status,
       host: url.hostname,

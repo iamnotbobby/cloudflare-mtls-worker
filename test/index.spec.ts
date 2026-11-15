@@ -17,10 +17,13 @@ function makeRequest(
 const OK_AUTH: TlsAuth = { certPresented: "1", certVerified: "SUCCESS", certRevoked: "0" };
 
 describe("mtls-gate", () => {
-  let log: ReturnType<typeof vi.spyOn>;
+  let log: ReturnType<typeof vi.fn<(...args: unknown[]) => void>>;
 
   beforeEach(() => {
-    log = vi.spyOn(console, "log").mockImplementation(() => {});
+    log = vi.fn<(...args: unknown[]) => void>();
+    for (const method of ["log", "info", "warn", "error"] as const) {
+      vi.spyOn(console, method).mockImplementation((...args) => log(...args));
+    }
   });
 
   afterEach(() => {
@@ -168,7 +171,8 @@ describe("mtls-gate", () => {
     const line = log.mock.calls[0][0] as string;
     expect(line).not.toContain("\n");
     expect(JSON.parse(line)).toEqual({
-      message: "421 Client certificate required: POST app.example.com/d/abc",
+      level: "info",
+      message: "421 no client certificate - POST app.example.com/d/abc",
       action: "reject",
       status: 421,
       host: "app.example.com",
@@ -190,6 +194,8 @@ describe("mtls-gate", () => {
 
     expect(log).toHaveBeenCalledTimes(1);
     expect(JSON.parse(log.mock.calls[0][0] as string)).toMatchObject({
+      level: "warn",
+      message: "403 certificate not verified (unknown) - GET app.example.com/d/abc",
       action: "reject",
       status: 403,
       certPresented: "1",
