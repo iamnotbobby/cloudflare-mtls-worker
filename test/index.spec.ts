@@ -168,6 +168,7 @@ describe("mtls-gate", () => {
     const line = log.mock.calls[0][0] as string;
     expect(line).not.toContain("\n");
     expect(JSON.parse(line)).toEqual({
+      message: "421 Client certificate required: POST app.example.com/d/abc",
       action: "reject",
       status: 421,
       host: "app.example.com",

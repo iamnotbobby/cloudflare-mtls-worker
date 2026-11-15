@@ -24,10 +24,12 @@ export async function handle(
   if (presented && verified && !revoked) return upstream(request);
 
   const status = presented ? 403 : 421;
+  const body = presented ? "Client certificate rejected" : "Client certificate required";
   const url = new URL(request.url);
-  
+
   console.log(
     JSON.stringify({
+      message: `${status} ${body}: ${request.method} ${url.hostname}${url.pathname}`,
       action: "reject",
       status,
       host: url.hostname,
@@ -40,9 +42,7 @@ export async function handle(
       ray: request.headers.get("cf-ray"),
     }),
   );
-  return presented
-    ? text(403, "Client certificate rejected")
-    : text(421, "Client certificate required");
+  return text(status, body);
 }
 
 export default {
