@@ -1,0 +1,50 @@
+export type GateRequest = Request<unknown, IncomingRequestCfProperties>;
+export type Upstream = (request: GateRequest) => Promise<Response>;
+
+const text = (status: number, body: string) =>
+  new Response(body, {
+    status,
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
+
+export async function handle(
+  request: GateRequest,
+  upstream: Upstream = (r) => fetch(r),
+): Promise<Response> {
+  // `cf` and `tlsClientAuth` are absent in local dev; treat that as "no cert".
+  const auth: { certPresented?: string; certVerified?: string; certRevoked?: string } =
+    request.cf?.tlsClientAuth ?? {};
+  const presented = auth.certPresented === "1";
+  const verified = auth.certVerified === "SUCCESS";
+  const revoked = auth.certRevoked === "1";
+
+  if (presented && verified && !revoked) return upstream(request);
+
+  const status = presented ? 403 : 421;
+  const url = new URL(request.url);
+  
+  console.log(
+    JSON.stringify({
+      action: "reject",
+      status,
+      host: url.hostname,
+      path: url.pathname,
+      method: request.method,
+      certPresented: auth.certPresented ?? null,
+      certVerified: auth.certVerified ?? null,
+      certRevoked: auth.certRevoked ?? null,
+      httpProtocol: request.cf?.httpProtocol ?? null,
+      ray: request.headers.get("cf-ray"),
+    }),
+  );
+  return presented
+    ? text(403, "Client certificate rejected")
+    : text(421, "Client certificate required");
+}
+
+export default {
+  fetch: (request) => handle(request),
+} satisfies ExportedHandler;

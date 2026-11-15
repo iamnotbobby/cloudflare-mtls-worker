@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mtls-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-14",
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "routes": [
+    { "pattern": "auth-pocket.heybob.by/*", "zone_name": "heybob.by" },
+    { "pattern": "metrics.heybob.by/*", "zone_name": "heybob.by" },
+    { "pattern": "seaweed.heybob.by/*", "zone_name": "heybob.by" }
+  ]
+}
